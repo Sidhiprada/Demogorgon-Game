@@ -1,0 +1,609 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Demogorgon Tactical Radar</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
+
+  <style>
+    :root {
+      --neon: #00ff9c;
+      --neon-dim: rgba(0,255,156,0.12);
+      --neon-mid: rgba(0,255,156,0.35);
+      --red: #ff3b3b;
+      --amber: #ffb347;
+      --bg: #020c07;
+      --panel: rgba(0,255,156,0.04);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--neon);
+      font-family: 'Share Tech Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* CRT scanline overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 3px,
+        rgba(0,0,0,0.18) 3px,
+        rgba(0,0,0,0.18) 4px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* Vignette */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.75) 100%);
+      pointer-events: none;
+      z-index: 99;
+    }
+
+    /* ── TOP HEADER BAR ── */
+    .header {
+      width: 100%;
+      max-width: 860px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 28px 0;
+      animation: fadeDown 0.8s ease both;
+    }
+
+    .header-left { text-align: left; }
+
+    .title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 900;
+      letter-spacing: 0.2em;
+      text-shadow: 0 0 18px var(--neon), 0 0 40px rgba(0,255,156,0.4);
+    }
+
+    .subtitle {
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      color: rgba(0,255,156,0.5);
+      margin-top: 2px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      border: 1px solid var(--neon-mid);
+      padding: 5px 14px;
+      border-radius: 2px;
+      background: var(--panel);
+    }
+
+    .pulse-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--neon);
+      box-shadow: 0 0 8px var(--neon);
+      animation: blink 1.2s ease-in-out infinite;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .main {
+      display: flex;
+      align-items: flex-start;
+      gap: 22px;
+      padding: 22px 28px;
+      width: 100%;
+      max-width: 860px;
+      animation: fadeUp 0.9s 0.2s ease both;
+    }
+
+    /* ── SIDE PANELS ── */
+    .side-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .panel-box {
+      border: 1px solid var(--neon-mid);
+      background: var(--panel);
+      padding: 12px 14px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel-box::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--neon), transparent);
+      opacity: 0.6;
+    }
+
+    .panel-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.18em;
+      color: rgba(0,255,156,0.5);
+      margin-bottom: 8px;
+    }
+
+    .panel-value {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-shadow: 0 0 10px var(--neon);
+    }
+
+    .panel-value.mono { font-family: 'Share Tech Mono', monospace; font-size: 0.82rem; }
+
+    .contact-list { display: flex; flex-direction: column; gap: 6px; }
+
+    .contact-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.7rem;
+      padding: 5px 8px;
+      border-left: 2px solid var(--neon-mid);
+      background: rgba(0,255,156,0.03);
+      transition: border-color 0.3s;
+    }
+
+    .contact-item:hover { border-color: var(--neon); }
+    .contact-item .tag { color: rgba(0,255,156,0.5); }
+    .contact-item .hostile { color: var(--red); text-shadow: 0 0 6px var(--red); }
+    .contact-item .neutral { color: var(--amber); }
+    .contact-item .friendly { color: var(--neon); }
+
+    .bar-wrap { margin-top: 4px; }
+    .bar-label { font-size: 0.62rem; color: rgba(0,255,156,0.5); margin-bottom: 3px; }
+    .bar-track {
+      height: 5px;
+      background: rgba(0,255,156,0.1);
+      border-radius: 2px;
+      margin-bottom: 6px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      background: var(--neon);
+      box-shadow: 0 0 6px var(--neon);
+      border-radius: 2px;
+      animation: barLoad 1.5s ease both;
+    }
+
+    /* ── RADAR CANVAS WRAPPER ── */
+    .radar-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .radar-frame {
+      position: relative;
+      width: 420px; height: 420px;
+      border: 1px solid var(--neon-mid);
+      background: radial-gradient(circle, rgba(0,20,10,0.9) 0%, rgba(2,12,7,0.98) 100%);
+      box-shadow:
+        0 0 0 1px rgba(0,255,156,0.08),
+        0 0 30px rgba(0,255,156,0.08),
+        inset 0 0 40px rgba(0,0,0,0.6);
+      overflow: hidden;
+    }
+
+    /* Corner brackets */
+    .radar-frame::before, .radar-frame::after {
+      content: '';
+      position: absolute;
+      width: 20px; height: 20px;
+      border-color: var(--neon);
+      border-style: solid;
+      z-index: 5;
+    }
+    .radar-frame::before { top: 6px; left: 6px; border-width: 2px 0 0 2px; }
+    .radar-frame::after  { bottom: 6px; right: 6px; border-width: 0 2px 2px 0; }
+
+    canvas {
+      display: block;
+      width: 420px; height: 420px;
+    }
+
+    /* Room code badge */
+    .room-badge {
+      position: absolute;
+      bottom: -1px; left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg);
+      border: 1px solid var(--neon-mid);
+      border-bottom: none;
+      padding: 4px 20px;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      color: rgba(0,255,156,0.6);
+      white-space: nowrap;
+    }
+
+    /* ── BOTTOM LOG ── */
+    .log-bar {
+      width: 100%;
+      max-width: 860px;
+      border-top: 1px solid var(--neon-mid);
+      padding: 10px 28px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      overflow: hidden;
+      animation: fadeUp 1s 0.4s ease both;
+    }
+
+    .log-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      color: rgba(0,255,156,0.4);
+      white-space: nowrap;
+    }
+
+    .log-scroll {
+      font-size: 0.68rem;
+      color: rgba(0,255,156,0.65);
+      white-space: nowrap;
+      overflow: hidden;
+      flex: 1;
+    }
+
+    .log-scroll span {
+      display: inline-block;
+      animation: scroll 22s linear infinite;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeDown { from { opacity:0; transform: translateY(-16px); } to { opacity:1; transform: none; } }
+    @keyframes fadeUp   { from { opacity:0; transform: translateY(16px); }  to { opacity:1; transform: none; } }
+    @keyframes blink    { 0%,100%{opacity:1} 50%{opacity:0.2} }
+    @keyframes barLoad  { from{width:0} }
+    @keyframes scroll   { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <div class="title">TACTICAL RADAR</div>
+      <div class="subtitle">DEMOGORGON TRACKING SYSTEM &nbsp;·&nbsp; v4.1.3</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <div class="status-pill"><div class="pulse-dot"></div> LIVE</div>
+      <div class="status-pill" id="clockDisplay">--:--:--</div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- LEFT PANEL -->
+    <div class="side-panel">
+
+      <div class="panel-box">
+        <div class="panel-label">ROOM CODE</div>
+        <div class="panel-value">{{room_code}}</div>
+      </div>
+
+      <div class="panel-box">
+        <div class="panel-label">SIGNAL STRENGTH</div>
+        <div class="bar-wrap">
+          <div class="bar-label">UPLINK</div>
+          <div class="bar-track"><div class="bar-fill" style="width:87%"></div></div>
+          <div class="bar-label">DOWNLINK</div>
+          <div class="bar-track"><div class="bar-fill" style="width:73%; animation-delay:0.3s"></div></div>
+          <div class="bar-label">SCAN RATE</div>
+          <div class="bar-track"><div class="bar-fill" style="width:95%; animation-delay:0.6s"></div></div>
+        </div>
+      </div>
+
+      <div class="panel-box">
+        <div class="panel-label">SYSTEM LOG</div>
+        <div class="panel-value mono" id="sysLog">INITIALISING...</div>
+      </div>
+
+    </div>
+
+    <!-- RADAR -->
+    <div class="radar-wrap">
+      <div class="radar-frame">
+        <canvas id="radar" width="420" height="420"></canvas>
+      </div>
+      <div class="room-badge">SECTOR // {{room_code}}</div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="side-panel">
+
+      <div class="panel-box">
+        <div class="panel-label">CONTACTS DETECTED</div>
+        <div class="panel-value" id="contactCount">0</div>
+      </div>
+
+      <div class="panel-box">
+        <div class="panel-label">ACTIVE CONTACTS</div>
+        <div class="contact-list" id="contactList">
+          <div class="contact-item"><span>SCANNING...</span><span class="tag">—</span></div>
+        </div>
+      </div>
+
+      <div class="panel-box">
+        <div class="panel-label">THREAT LEVEL</div>
+        <div class="panel-value" id="threatLevel" style="color:var(--amber)">MODERATE</div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- SCROLLING LOG BAR -->
+  <div class="log-bar">
+    <span class="log-label">COMMS //</span>
+    <div class="log-scroll">
+      <span>
+        [04:12:03] Sweep complete — 3 contacts detected &nbsp;&nbsp;·&nbsp;&nbsp;
+        [04:12:08] Anomalous signal on bearing 227° &nbsp;&nbsp;·&nbsp;&nbsp;
+        [04:12:15] UPLINK stable — encryption active &nbsp;&nbsp;·&nbsp;&nbsp;
+        [04:12:21] Patrol route delta confirmed &nbsp;&nbsp;·&nbsp;&nbsp;
+        [04:12:30] Thermal signature: HOSTILE at 6 o'clock &nbsp;&nbsp;·&nbsp;&nbsp;
+        [04:12:03] Sweep complete — 3 contacts detected &nbsp;&nbsp;·&nbsp;&nbsp;
+        [04:12:08] Anomalous signal on bearing 227° &nbsp;&nbsp;·&nbsp;&nbsp;
+        [04:12:15] UPLINK stable — encryption active &nbsp;&nbsp;·&nbsp;&nbsp;
+        [04:12:21] Patrol route delta confirmed &nbsp;&nbsp;·&nbsp;&nbsp;
+        [04:12:30] Thermal signature: HOSTILE at 6 o'clock &nbsp;&nbsp;·&nbsp;&nbsp;
+      </span>
+    </div>
+  </div>
+
+  <script src="{% static 'js/radar.js' %}"></script>
+
+  <script>
+    /* ── CLOCK ── */
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clockDisplay').textContent =
+        now.toTimeString().slice(0,8);
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    /* ── SYSTEM LOG CYCLER ── */
+    const logs = [
+      'SWEEP ACTIVE', 'SIGNAL LOCKED', 'TRACKING…', 'ANALYSING…',
+      'CONTACT FOUND', 'UPLINK OK', 'ENCRYPTION ON', 'SCAN RATE 95%'
+    ];
+    let li = 0;
+    setInterval(() => {
+      document.getElementById('sysLog').textContent = logs[li++ % logs.length];
+    }, 2400);
+
+    /* ── RADAR ENGINE ── */
+    const canvas = document.getElementById('radar');
+    const ctx    = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const cx = W/2, cy = H/2, maxR = W/2 - 12;
+
+    /* Simulated contacts */
+    const contacts = [
+      { angle: 0.8,  r: 0.55, type: 'hostile',  id: 'TGT-01' },
+      { angle: 2.1,  r: 0.72, type: 'neutral',  id: 'TGT-02' },
+      { angle: 3.8,  r: 0.38, type: 'friendly', id: 'TGT-03' },
+    ];
+
+    /* Blip trail history */
+    contacts.forEach(c => { c.trail = []; c.blipAlpha = 0; });
+
+    let sweepAngle = 0;
+    const sweepSpeed = 0.018;
+    const NEON  = '#00ff9c';
+    const RED   = '#ff3b3b';
+    const AMBER = '#ffb347';
+
+    function contactColor(type) {
+      return type === 'hostile' ? RED : type === 'neutral' ? AMBER : NEON;
+    }
+
+    function drawGrid() {
+      const rings = 4;
+      for (let i = 1; i <= rings; i++) {
+        const r = (maxR / rings) * i;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0,255,156,0.12)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        /* Range label */
+        ctx.fillStyle = 'rgba(0,255,156,0.3)';
+        ctx.font = '9px "Share Tech Mono"';
+        ctx.fillText(`${i * 25}km`, cx + 4, cy - r + 10);
+      }
+      /* Cross-hairs */
+      ctx.strokeStyle = 'rgba(0,255,156,0.1)';
+      ctx.lineWidth = 1;
+      [0, 45, 90, 135].forEach(deg => {
+        const rad = deg * Math.PI / 180;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(rad) * maxR, cy + Math.sin(rad) * maxR);
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx - Math.cos(rad) * maxR, cy - Math.sin(rad) * maxR);
+        ctx.stroke();
+      });
+      /* Bearing ticks & labels */
+      const bearings = ['N','045','090','135','S','225','270','315'];
+      bearings.forEach((label, i) => {
+        const rad = (i * 45 - 90) * Math.PI / 180;
+        const x1 = cx + Math.cos(rad) * (maxR + 2);
+        const y1 = cy + Math.sin(rad) * (maxR + 2);
+        const x2 = cx + Math.cos(rad) * (maxR + 8);
+        const y2 = cy + Math.sin(rad) * (maxR + 8);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+        ctx.strokeStyle = 'rgba(0,255,156,0.4)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(0,255,156,0.5)';
+        ctx.font = '8px "Share Tech Mono"';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, cx + Math.cos(rad) * (maxR + 18), cy + Math.sin(rad) * (maxR + 18));
+      });
+      ctx.textAlign = 'left';
+    }
+
+    function drawSweep() {
+      /* Glow arc */
+      const grad = ctx.createConicalGradient
+        ? null  /* fallback below */
+        : null;
+
+      /* Sweep cone: paint via arc segments */
+      const steps = 40;
+      const span  = Math.PI * 0.55;
+      for (let s = 0; s < steps; s++) {
+        const a0 = sweepAngle - span + (span / steps) * s;
+        const a1 = a0 + (span / steps) + 0.01;
+        const alpha = (s / steps) * 0.38;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, maxR, a0, a1);
+        ctx.closePath();
+        ctx.fillStyle = `rgba(0,255,156,${alpha})`;
+        ctx.fill();
+      }
+
+      /* Sweep leading edge */
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(sweepAngle) * maxR, cy + Math.sin(sweepAngle) * maxR);
+      ctx.strokeStyle = `rgba(0,255,156,0.9)`;
+      ctx.lineWidth = 2;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = NEON;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    function drawBlips() {
+      contacts.forEach(c => {
+        /* Sweep reveals blip */
+        const diff = ((sweepAngle - c.angle) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+        if (diff < 0.08) c.blipAlpha = 1.0;
+        else c.blipAlpha = Math.max(0, c.blipAlpha - 0.004);
+
+        if (c.blipAlpha < 0.02) return;
+
+        const bx = cx + Math.cos(c.angle) * c.r * maxR;
+        const by = cy + Math.sin(c.angle) * c.r * maxR;
+        const col = contactColor(c.type);
+
+        /* Halo ring */
+        ctx.beginPath();
+        ctx.arc(bx, by, 8, 0, Math.PI * 2);
+        ctx.strokeStyle = col.replace(')', `,${c.blipAlpha * 0.4})`).replace('rgb', 'rgba');
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        /* Core dot */
+        ctx.beginPath();
+        ctx.arc(bx, by, 3, 0, Math.PI * 2);
+        ctx.fillStyle = col;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = col;
+        ctx.globalAlpha = Math.min(1, c.blipAlpha * 1.4);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+
+        /* ID tag */
+        ctx.fillStyle = `rgba(0,255,156,${c.blipAlpha * 0.8})`;
+        ctx.font = '8px "Share Tech Mono"';
+        ctx.fillText(c.id, bx + 8, by - 6);
+      });
+    }
+
+    function drawCenter() {
+      ctx.beginPath();
+      ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+      ctx.fillStyle = NEON;
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = NEON;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    function updateSidebar() {
+      const visible = contacts.filter(c => c.blipAlpha > 0.1);
+      document.getElementById('contactCount').textContent = visible.length;
+
+      const list = document.getElementById('contactList');
+      if (visible.length === 0) {
+        list.innerHTML = '<div class="contact-item"><span>NO CONTACTS</span><span class="tag">—</span></div>';
+      } else {
+        list.innerHTML = visible.map(c =>
+          `<div class="contact-item">
+            <span class="${c.type}">${c.id}</span>
+            <span class="tag ${c.type}">${c.type.toUpperCase()}</span>
+          </div>`
+        ).join('');
+      }
+
+      const hostiles = visible.filter(c => c.type === 'hostile').length;
+      const el = document.getElementById('threatLevel');
+      if (hostiles === 0) {
+        el.textContent = 'LOW';
+        el.style.color = 'var(--neon)';
+      } else if (hostiles === 1) {
+        el.textContent = 'MODERATE';
+        el.style.color = 'var(--amber)';
+      } else {
+        el.textContent = 'CRITICAL';
+        el.style.color = 'var(--red)';
+      }
+    }
+
+    function loop() {
+      ctx.clearRect(0, 0, W, H);
+      drawGrid();
+      drawSweep();
+      drawBlips();
+      drawCenter();
+
+      sweepAngle = (sweepAngle + sweepSpeed) % (Math.PI * 2);
+
+      if (Math.random() < 0.03) updateSidebar();
+
+      requestAnimationFrame(loop);
+    }
+
+    updateSidebar();
+    loop();
+  </script>
+</body>
+</html>

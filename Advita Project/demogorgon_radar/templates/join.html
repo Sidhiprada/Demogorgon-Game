@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Join Tactical Session</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
+
+  <style>
+    :root {
+      --neon:     #00ff9c;
+      --neon-dim: rgba(0,255,156,0.10);
+      --neon-mid: rgba(0,255,156,0.30);
+      --neon-glow:rgba(0,255,156,0.55);
+      --red:      #ff3b3b;
+      --amber:    #ffb347;
+      --bg:       #020c07;
+      --panel:    rgba(0,255,156,0.04);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── CURSOR ── */
+    body { cursor: crosshair; }
+
+    /* ── BASE ── */
+    body {
+      background: var(--bg);
+      color: var(--neon);
+      font-family: 'Share Tech Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* CRT scanlines */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px, transparent 3px,
+        rgba(0,0,0,0.15) 3px, rgba(0,0,0,0.15) 4px
+      );
+      pointer-events: none; z-index: 200;
+    }
+
+    /* Vignette */
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.82) 100%);
+      pointer-events: none; z-index: 199;
+    }
+
+    /* ── ANIMATED GRID BACKGROUND ── */
+    .bg-grid {
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,156,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,156,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      animation: gridDrift 30s linear infinite;
+      z-index: 0;
+    }
+
+    @keyframes gridDrift {
+      from { background-position: 0 0; }
+      to   { background-position: 48px 48px; }
+    }
+
+    /* Glowing orb behind form */
+    .bg-orb {
+      position: fixed;
+      width: 520px; height: 520px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,255,156,0.07) 0%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      animation: orbPulse 4s ease-in-out infinite;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    @keyframes orbPulse {
+      0%,100% { transform: translate(-50%,-50%) scale(1);   opacity: 1; }
+      50%      { transform: translate(-50%,-50%) scale(1.12); opacity: 0.6; }
+    }
+
+    /* ── CARD ── */
+    .card {
+      position: relative; z-index: 10;
+      width: 420px;
+      border: 1px solid var(--neon-mid);
+      background: var(--panel);
+      backdrop-filter: blur(6px);
+      padding: 0;
+      animation: cardReveal 0.9s cubic-bezier(0.16,1,0.3,1) both;
+    }
+
+    @keyframes cardReveal {
+      from { opacity: 0; transform: translateY(28px) scale(0.97); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* Top shimmer bar */
+    .card::before {
+      content: '';
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 2px;
+      background: linear-gradient(90deg, transparent 0%, var(--neon) 50%, transparent 100%);
+      opacity: 0.7;
+    }
+
+    /* Corner brackets */
+    .card::after {
+      content: '';
+      position: absolute;
+      bottom: 6px; right: 6px;
+      width: 18px; height: 18px;
+      border-right: 2px solid var(--neon-mid);
+      border-bottom: 2px solid var(--neon-mid);
+    }
+
+    .bracket-tl {
+      position: absolute;
+      top: 6px; left: 6px;
+      width: 18px; height: 18px;
+      border-top: 2px solid var(--neon-mid);
+      border-left: 2px solid var(--neon-mid);
+      z-index: 1;
+    }
+
+    /* ── CARD HEADER ── */
+    .card-header {
+      padding: 28px 32px 22px;
+      border-bottom: 1px solid rgba(0,255,156,0.08);
+      position: relative;
+    }
+
+    .card-eyebrow {
+      font-size: 0.58rem;
+      letter-spacing: 0.28em;
+      color: rgba(0,255,156,0.45);
+      margin-bottom: 8px;
+      animation: fadeIn 0.6s 0.3s ease both;
+    }
+
+    .card-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.55rem;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-shadow: 0 0 20px var(--neon), 0 0 50px rgba(0,255,156,0.3);
+      animation: fadeIn 0.6s 0.4s ease both;
+    }
+
+    .card-title span {
+      color: rgba(0,255,156,0.4);
+      font-weight: 400;
+    }
+
+    /* Scanning line decoration */
+    .scan-line {
+      position: absolute;
+      bottom: -1px; left: 32px;
+      height: 1px;
+      background: var(--neon);
+      box-shadow: 0 0 8px var(--neon);
+      animation: scanExpand 1s 0.6s cubic-bezier(0.16,1,0.3,1) both;
+    }
+
+    @keyframes scanExpand {
+      from { width: 0; }
+      to   { width: calc(100% - 64px); }
+    }
+
+    /* ── FORM BODY ── */
+    .card-body {
+      padding: 28px 32px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ── FIELD GROUP ── */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      animation: fadeIn 0.5s ease both;
+    }
+
+    .field:nth-child(1) { animation-delay: 0.5s; }
+    .field:nth-child(2) { animation-delay: 0.65s; }
+
+    .field-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.22em;
+      color: rgba(0,255,156,0.5);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .field-label::before {
+      content: '//';
+      color: rgba(0,255,156,0.25);
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    /* Left accent bar */
+    .input-wrap::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 2px;
+      background: var(--neon-mid);
+      transition: background 0.25s, box-shadow 0.25s;
+    }
+
+    .input-wrap:focus-within::before {
+      background: var(--neon);
+      box-shadow: 0 0 10px var(--neon);
+    }
+
+    input[type="text"],
+    input:not([type]) {
+      width: 100%;
+      background: rgba(0,255,156,0.03);
+      border: 1px solid rgba(0,255,156,0.15);
+      border-left: none;
+      color: var(--neon);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.95rem;
+      letter-spacing: 0.08em;
+      padding: 11px 14px 11px 16px;
+      outline: none;
+      transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
+      caret-color: var(--neon);
+    }
+
+    input::placeholder {
+      color: rgba(0,255,156,0.22);
+      letter-spacing: 0.12em;
+    }
+
+    input:focus {
+      border-color: rgba(0,255,156,0.45);
+      background: rgba(0,255,156,0.06);
+      box-shadow: 0 0 18px rgba(0,255,156,0.07), inset 0 0 12px rgba(0,255,156,0.04);
+    }
+
+    /* Flicker animation on focus */
+    input:focus { animation: flicker 0.08s; }
+
+    @keyframes flicker {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.85; }
+    }
+
+    /* ── STATUS ROW ── */
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border: 1px solid rgba(0,255,156,0.1);
+      background: rgba(0,255,156,0.02);
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      color: rgba(0,255,156,0.5);
+      animation: fadeIn 0.5s 0.8s ease both;
+    }
+
+    .pulse-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--neon);
+      box-shadow: 0 0 6px var(--neon);
+      flex-shrink: 0;
+      animation: blink 1.4s ease-in-out infinite;
+    }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.15} }
+
+    /* ── SUBMIT BUTTON ── */
+    .btn-wrap {
+      animation: fadeIn 0.5s 0.9s ease both;
+    }
+
+    button[type="submit"] {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--neon-mid);
+      color: var(--neon);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.28em;
+      padding: 14px;
+      cursor: crosshair;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.25s, color 0.25s, box-shadow 0.25s;
+      text-shadow: 0 0 12px var(--neon);
+    }
+
+    button[type="submit"]::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--neon);
+      transform: translateX(-101%);
+      transition: transform 0.35s cubic-bezier(0.16,1,0.3,1);
+      z-index: 0;
+    }
+
+    button[type="submit"]:hover::before  { transform: translateX(0); }
+    button[type="submit"]:hover {
+      color: var(--bg);
+      border-color: var(--neon);
+      box-shadow: 0 0 28px rgba(0,255,156,0.4);
+      text-shadow: none;
+    }
+
+    button[type="submit"] .btn-text {
+      position: relative; z-index: 1;
+    }
+
+    button[type="submit"]:active {
+      transform: scale(0.98);
+    }
+
+    /* ── FOOTER ── */
+    .card-footer {
+      padding: 12px 32px 16px;
+      border-top: 1px solid rgba(0,255,156,0.07);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      animation: fadeIn 0.5s 1s ease both;
+    }
+
+    .footer-tag {
+      font-size: 0.58rem;
+      letter-spacing: 0.18em;
+      color: rgba(0,255,156,0.25);
+    }
+
+    .footer-enc {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 0.58rem;
+      letter-spacing: 0.12em;
+      color: rgba(0,255,156,0.3);
+    }
+
+    .enc-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--neon);
+      opacity: 0.5;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+  <div class="bg-orb"></div>
+
+  <div class="card">
+    <div class="bracket-tl"></div>
+
+    <!-- HEADER -->
+    <div class="card-header">
+      <div class="card-eyebrow">DEMOGORGON SYSTEM &nbsp;·&nbsp; AUTHENTICATION PORTAL</div>
+      <div class="card-title">JOIN <span>//</span> GAME</div>
+      <div class="scan-line"></div>
+    </div>
+
+    <!-- FORM -->
+    <form method="POST">
+      {% csrf_token %}
+
+      <div class="card-body">
+
+        <div class="field">
+          <label class="field-label" for="room_code">ROOM CODE</label>
+          <div class="input-wrap">
+            <input
+              type="text"
+              id="room_code"
+              name="room_code"
+              value="{{room_code}}"
+              placeholder="ENTER SECTOR CODE"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="player_name">OPERATIVE NAME</label>
+          <div class="input-wrap">
+            <input
+              type="text"
+              id="player_name"
+              name="player_name"
+              placeholder="IDENTIFY YOURSELF"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+        </div>
+
+        <div class="status-row">
+          <div class="pulse-dot"></div>
+          <span id="statusText">AWAITING CREDENTIALS</span>
+        </div>
+
+        <div class="btn-wrap">
+          <button type="submit">
+            <span class="btn-text">INITIATE BREACH</span>
+          </button>
+        </div>
+
+      </div>
+    </form>
+
+    <!-- FOOTER -->
+    <div class="card-footer">
+      <span class="footer-tag">SYS v4.1.3</span>
+      <div class="footer-enc">
+        <div class="enc-dot"></div>
+        END-TO-END ENCRYPTED
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* Input type-response status messages */
+    const roomInput = document.getElementById('room_code');
+    const nameInput = document.getElementById('player_name');
+    const status    = document.getElementById('statusText');
+
+    const msgs = {
+      empty:    'AWAITING CREDENTIALS',
+      room:     'ROOM CODE RECEIVED — ENTER OPERATIVE NAME',
+      name:     'OPERATIVE IDENTIFIED — ENTER ROOM CODE',
+      both:     'CREDENTIALS VERIFIED — READY TO BREACH',
+    };
+
+    function updateStatus() {
+      const r = roomInput.value.trim();
+      const n = nameInput.value.trim();
+      if (r && n)       status.textContent = msgs.both;
+      else if (r)       status.textContent = msgs.room;
+      else if (n)       status.textContent = msgs.name;
+      else              status.textContent = msgs.empty;
+    }
+
+    roomInput.addEventListener('input', updateStatus);
+    nameInput.addEventListener('input', updateStatus);
+
+    /* Trigger initial check (room_code may be pre-filled by Django) */
+    updateStatus();
+  </script>
+</body>
+</html>
